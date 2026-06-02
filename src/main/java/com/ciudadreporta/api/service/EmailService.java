@@ -18,4 +18,12 @@ public class EmailService {
         mensaje.setText("Tu codigo de verificacion es: " + codigo);
         mailSender.send(mensaje);
     }
+
+    public void enviarNotificacion(String destinatario, String asunto, String cuerpo) {
+        SimpleMailMessage mensaje = new SimpleMailMessage();
+        mensaje.setTo(destinatario);
+        mensaje.setSubject(asunto);
+        mensaje.setText(cuerpo);
+        mailSender.send(mensaje);
+    }
 }

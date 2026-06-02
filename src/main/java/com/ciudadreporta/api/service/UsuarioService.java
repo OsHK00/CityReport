@@ -174,6 +174,7 @@ public class UsuarioService {
             usuario.getEmail(),
             usuario.getActivo(),
             usuario.getRol().getNombre(),
+            usuario.getFotoUrl(),
             usuario.getCreatedAt()
         );
     }

@@ -17,14 +17,18 @@ services:
       retries: 5
 
   api:
-    build: .
-    container_name: ciudad-reporta-api
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file: .env
-    ports:
-      - "8080:8080"
+      build: .
+      container_name: ciudad-reporta-api
+      depends_on:
+        db:
+          condition: service_healthy
+      env_file: .env
+      environment:
+        - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DB_NAME}
+        - SPRING_DATASOURCE_USERNAME=${DB_USER}
+        - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      ports:
+        - "8080:8080"
 
 volumes:
   pgdata:

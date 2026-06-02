@@ -45,6 +45,7 @@ public class UsuarioController {
             usuario.getEmail(),
             usuario.getActivo(),
             usuario.getRol().getNombre(),
+            usuario.getFotoUrl(),
             usuario.getCreatedAt()
         );
     }

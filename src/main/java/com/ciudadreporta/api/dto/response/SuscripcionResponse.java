@@ -3,12 +3,11 @@ package com.ciudadreporta.api.dto.response;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record UsuarioResponse(
+public record SuscripcionResponse(
     UUID id,
-    String nombre,
-    String email,
-    Boolean activo,
-    String rol,
-    String fotoUrl,
+    UUID usuarioId,
+    String usuarioNombre,
+    Long categoriaId,
+    String categoriaNombre,
     LocalDateTime createdAt
 ) {}

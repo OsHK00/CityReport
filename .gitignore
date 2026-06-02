@@ -33,3 +33,5 @@ build/
 .vscode/
 java-mvn-dv.md
 .env
+AGENTS.md
+requests.txt
