@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ciudadreporta.api.dto.request.ReporteRequest;
 import com.ciudadreporta.api.dto.response.ReporteResponse;
@@ -25,6 +26,7 @@ import com.ciudadreporta.api.model.TipoVoto;
 import com.ciudadreporta.api.model.UsuarioModel;
 import com.ciudadreporta.api.model.VotoReporteModel;
 import com.ciudadreporta.api.repository.CategoriaRepository;
+import com.ciudadreporta.api.repository.ImagenReporteRepository;
 import com.ciudadreporta.api.repository.ReporteRepository;
 import com.ciudadreporta.api.repository.UsuarioRepository;
 import com.ciudadreporta.api.repository.VotoReporteRepository;
@@ -47,13 +49,41 @@ public class ReporteService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private ImagenReporteRepository imagenReporteRepository;
+
+    @Autowired
+    private AlmacenamientoService almacenamientoService;
+
     @Transactional
     public ReporteResponse crear(ReporteRequest request) {
+        return crear(request, null);
+    }
+
+    @Transactional
+    public ReporteResponse crear(ReporteRequest request, List<MultipartFile> archivos) {
         CategoriaModel categoria = categoriaRepository.findById(request.categoriaId())
                 .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
 
         UsuarioModel usuario = usuarioRepository.findById(UUID.fromString(request.usuarioId()))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        List<ImagenReporteModel> imagenes = new ArrayList<>();
+
+        if (archivos != null && !archivos.isEmpty()) {
+            if (archivos.size() > 4) {
+                throw new RuntimeException("Maximo 4 imagenes por reporte");
+            }
+            int orden = 1;
+            for (MultipartFile archivo : archivos) {
+                String url = almacenamientoService.subir(archivo, "reportes/" + UUID.randomUUID());
+                ImagenReporteModel img = ImagenReporteModel.builder()
+                        .url(url)
+                        .orden(orden++)
+                        .build();
+                imagenes.add(img);
+            }
+        }
 
         ReporteModel reporte = ReporteModel.builder()
                 .titulo(request.titulo())
@@ -62,8 +92,10 @@ public class ReporteService {
                 .longitud(request.longitud())
                 .categoria(categoria)
                 .usuario(usuario)
-                .imagenes(new ArrayList<>())
+                .imagenes(imagenes)
                 .build();
+
+        imagenes.forEach(img -> img.setReporte(reporte));
 
         ReporteModel guardado = reporteRepository.save(reporte);
 
@@ -124,6 +156,35 @@ public class ReporteService {
             throw new RuntimeException("Reporte no encontrado");
         }
         reporteRepository.deleteById(id);
+    }
+
+    @Transactional
+    public List<ImagenInfo> agregarImagenes(UUID reporteId, List<MultipartFile> archivos) {
+        ReporteModel reporte = reporteRepository.findById(reporteId)
+                .orElseThrow(() -> new RuntimeException("Reporte no encontrado"));
+
+        int currentCount = reporte.getImagenes() != null ? reporte.getImagenes().size() : 0;
+        if (currentCount + archivos.size() > 4) {
+            throw new RuntimeException("Maximo 4 imagenes por reporte");
+        }
+
+        List<ImagenInfo> result = new ArrayList<>();
+        int orden = currentCount + 1;
+
+        for (MultipartFile archivo : archivos) {
+            String url = almacenamientoService.subir(archivo, "reportes/" + reporteId);
+
+            ImagenReporteModel img = ImagenReporteModel.builder()
+                    .reporte(reporte)
+                    .url(url)
+                    .orden(orden++)
+                    .build();
+
+            ImagenReporteModel guardada = imagenReporteRepository.save(img);
+            result.add(new ImagenInfo(guardada.getId(), guardada.getUrl(), guardada.getOrden()));
+        }
+
+        return result;
     }
 
     @Transactional

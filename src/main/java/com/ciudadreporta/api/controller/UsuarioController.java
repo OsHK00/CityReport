@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -48,5 +50,11 @@ public class UsuarioController {
             usuario.getFotoUrl(),
             usuario.getCreatedAt()
         );
+    }
+
+    @PostMapping("/{id}/foto")
+    public UsuarioResponse subirFoto(@PathVariable UUID id,
+                                      @RequestParam("archivo") MultipartFile archivo) {
+        return usuarioService.subirFoto(id, archivo);
     }
 }

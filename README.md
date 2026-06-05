@@ -8,6 +8,7 @@ API REST para red social de reportes ciudadanos. Los usuarios reportan problemas
 - PostgreSQL 16 + Hibernate / JPA
 - Maven + Docker
 - Spring Security (BCrypt) + Spring Mail
+- Cloudinary (almacenamiento y conversión WebP)
 
 ## Cómo empezar
 
@@ -61,6 +62,7 @@ git clone https://github.com/OsHK00/CityReport.git
 | GET | `/usuario` | — | Listar todos |
 | GET | `/usuario/{id}` | — | Obtener por UUID |
 | POST | `/usuario` | `RegistroRequest` | Crear usuario |
+| POST | `/usuario/{id}/foto` | `multipart/form-data` | Subir foto de perfil |
 
 ```json
 // GET /usuario
@@ -76,6 +78,21 @@ git clone https://github.com/OsHK00/CityReport.git
     "createdAt": "2026-06-01T..."
   }
 ]
+```
+
+```json
+// POST /usuario/{id}/foto (multipart/form-data)
+// Request — form-data: archivo (File)
+// Response — UsuarioResponse con fotoUrl actualizada
+{
+  "id": "uuid",
+  "nombre": "Juan",
+  "email": "juan@email.com",
+  "activo": true,
+  "rol": "CIUDADANO",
+  "fotoUrl": "https://res.cloudinary.com/...webp",
+  "createdAt": "2026-06-01T..."
+}
 ```
 
 ### Roles — `/roles`
@@ -122,22 +139,24 @@ git clone https://github.com/OsHK00/CityReport.git
 |--------|------|------|-------------|
 | GET | `/reportes` | — | Feed paginado (cursor) |
 | GET | `/reportes/{id}` | — | Obtener reporte |
-| POST | `/reportes` | `ReporteRequest` | Crear reporte |
+| POST | `/reportes` | `multipart/form-data` | Crear reporte (con o sin imágenes) |
 | PUT | `/reportes/{id}` | `ReporteRequest` | Actualizar reporte |
 | DELETE | `/reportes/{id}` | — | Eliminar reporte |
 | POST | `/reportes/{id}/votos` | `VotoRequest` | Votar (UPVOTE/DOWNVOTE) |
+| POST | `/reportes/{id}/imagenes` | `multipart/form-data` | Agregar imágenes a reporte existente |
 
-```json
-// POST /reportes
-// Request — ReporteRequest
-{
-  "titulo": "Bache en Av. Principal",
-  "descripcion": "Bache de 2 metros...",
-  "latitud": 19.4326,
-  "longitud": -99.1332,
-  "categoriaId": 1,
-  "usuarioId": "uuid-del-usuario"
-}
+> **Las imágenes se suben junto con el reporte** en un solo `multipart/form-data`. Para reportes existentes sin imágenes, hay un endpoint separado.
+
+```
+// POST /reportes (multipart/form-data)
+// Request — form-data:
+//   titulo      (Text) → "Bache en Av. Principal"
+//   descripcion (Text) → "Bache de 2 metros..."
+//   latitud     (Text) → 19.4326
+//   longitud    (Text) → -99.1332
+//   categoriaId (Text) → 1
+//   usuarioId   (Text) → "uuid-del-usuario"
+//   archivos    (File) → imagen1.jpg   (opcional, max 4)
 
 // Response — ReporteResponse
 {
@@ -148,14 +167,16 @@ git clone https://github.com/OsHK00/CityReport.git
   "longitud": -99.1332,
   "categoria": { "id": 1, "nombre": "Baches" },
   "usuario": { "id": "uuid", "nombre": "Juan" },
-  "imagenes": [],
+  "imagenes": [
+    { "id": 1, "url": "https://res.cloudinary.com/...webp", "orden": 1 }
+  ],
   "upvotes": 0,
   "downvotes": 0,
   "createdAt": "2026-06-01T..."
 }
 ```
 
-```json
+```
 // GET /reportes?cursor=&size=10
 // Response — FeedResponse
 {
@@ -165,7 +186,7 @@ git clone https://github.com/OsHK00/CityReport.git
 }
 ```
 
-```json
+```
 // POST /reportes/{id}/votos
 // Request — VotoRequest
 { "tipo": "UPVOTE", "usuarioId": "uuid-del-usuario" }
@@ -174,13 +195,24 @@ git clone https://github.com/OsHK00/CityReport.git
 { "reporteId": "uuid", "upvotes": 1, "downvotes": 0, "mensaje": "Voto registrado" }
 ```
 
-> El feed usa paginación **cursor-based**. El primer llamado es `GET /reportes?cursor=&size=10`. Para la siguiente página se usa `GET /reportes?cursor={nextCursor}&size=10`.
+> El feed usa paginación **cursor-based**. El primer llamado es `GET /reportes?cursor=&size=10`. Para la siguiente página se usa `GET /reportes?cursor={nextCursor}&size=10`. Las imágenes se suben a Cloudinary y se convierten automáticamente a WebP.
 
 ---
 
 ## Variables de Entorno
 
 Ver `.env.example` para la lista completa de variables requeridas.
+
+| Variable | Descripción |
+|----------|-------------|
+| `DB_NAME` | Nombre BD PostgreSQL |
+| `DB_USER` | Usuario BD |
+| `DB_PASSWORD` | Contraseña BD |
+| `MAIL_HOST` | Servidor SMTP |
+| `MAIL_PORT` | Puerto SMTP |
+| `MAIL_USERNAME` | Usuario SMTP |
+| `MAIL_PASSWORD` | Contraseña SMTP |
+| `CLOUDINARY_URL` | URL completa de Cloudinary (`cloudinary://api_key:api_secret@cloud_name`) |
 
 ## Docker
 

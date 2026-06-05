@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ciudadreporta.api.repository.UsuarioRepository;
 import com.ciudadreporta.api.repository.RolRepository;
@@ -38,6 +39,9 @@ public class UsuarioService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private AlmacenamientoService almacenamientoService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -160,6 +164,17 @@ public class UsuarioService {
 
     public UsuarioModel getUsuarioByEmail(String email) {
         return usuarioRepository.findByEmail(email).orElse(null);
+    }
+
+    public UsuarioResponse subirFoto(UUID usuarioId, MultipartFile archivo) {
+        UsuarioModel usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        String url = almacenamientoService.subir(archivo, "perfiles/" + usuarioId);
+        usuario.setFotoUrl(url);
+        usuarioRepository.save(usuario);
+
+        return toUsuarioResponse(usuario);
     }
 
     private String generarCodigo() {
